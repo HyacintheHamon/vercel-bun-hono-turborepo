@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Builds
+.next/
+out/
+dist/
+build/
+
+# Turborepo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.DS_Store
