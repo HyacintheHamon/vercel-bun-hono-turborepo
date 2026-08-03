@@ -1,6 +1,6 @@
 // Fichier d'exemple : montre comment consommer les alias d'import.
-//   `@/lib/runtime`  → apps/api/src/lib/runtime.ts   (alias local, voir tsconfig.json)
-//   `@repo/shared`   → packages/shared               (workspace Bun)
+//   `@/lib/runtime`  → apps/api/src/lib/runtime.ts  (voir `paths` du tsconfig.json)
+//   `@repo/shared`  → packages/shared              (workspace Bun)
 // Aucun chemin relatif du type `../lib/runtime` n'est nécessaire.
 import { Hono } from "hono";
 import type { ApiResponse } from "@repo/shared";

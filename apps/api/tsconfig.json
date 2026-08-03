@@ -1,15 +1,17 @@
 {
   "extends": "@repo/typescript-config/bun.json",
   "compilerOptions": {
-    // Bun en local, Node sur les Vercel Functions : les deux runtimes sont ciblés.
+    // `node` fournit les types de `process` (utilisé pour PORT et CORS_ORIGIN),
+    // que Bun expose aussi. Déclaré en dépendance directe : Vercel n'installe
+    // pas les dépendances transitives de ce workspace.
     "types": ["bun", "node"],
-    // Alias d'import : `@/x` → `src/x`. baseUrl est explicite pour que le
-    // bundler de Vercel (esbuild) résolve les chemins comme Bun le fait.
+    // Alias `@/x` → `src/x`. Bun lit ces `paths` à l'exécution, y compris sur
+    // les Vercel Functions puisque le runtime Bun y est activé (vercel.json).
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "api"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
