@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import type { ApiResponse, HelloResponse } from "@repo/shared";
+import type { HelloResponse, RootResponse } from "@repo/shared";
+
+import { bunVersion, runtime } from "@/lib/runtime";
+import example from "@/routes/example";
 
 const app = new Hono();
 
@@ -14,9 +17,15 @@ app.use(
 );
 
 app.get("/", (c) => {
-  const response: ApiResponse = {
+  const response: RootResponse = {
     success: true,
-    message: "Hono API is running",
+    message: bunVersion
+      ? `Hono API is running on Bun ${bunVersion}`
+      : "Hono API is running on Node",
+    data: {
+      runtime,
+      bunVersion,
+    },
   };
   return c.json(response);
 });
@@ -24,7 +33,7 @@ app.get("/", (c) => {
 app.get("/api/hello", (c) => {
   const response: HelloResponse = {
     success: true,
-    message: "Hello from Hono on Bun!",
+    message: "Hello from Hono!",
     data: {
       greeting: "Bonjour depuis apps/api 👋",
       timestamp: new Date().toISOString(),
@@ -32,5 +41,7 @@ app.get("/api/hello", (c) => {
   };
   return c.json(response);
 });
+
+app.route("/api/example", example);
 
 export default app;

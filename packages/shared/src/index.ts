@@ -8,6 +8,15 @@ export interface ApiResponse<T = unknown> {
   data?: T;
 }
 
+export interface RootData {
+  /** L'API tourne sous Bun en local, sous Node sur les Vercel Functions. */
+  runtime: "bun" | "node";
+  /** Version de Bun, `null` quand l'API ne tourne pas sous Bun. */
+  bunVersion: string | null;
+}
+
+export type RootResponse = ApiResponse<RootData>;
+
 export interface HelloData {
   greeting: string;
   timestamp: string;

@@ -1,5 +1,17 @@
 {
   "extends": "@repo/typescript-config/bun.json",
-  "include": ["src", "api"],
+  "compilerOptions": {
+    // `node` fournit les types de `process` (utilisé pour PORT et CORS_ORIGIN),
+    // que Bun expose aussi. Déclaré en dépendance directe : Vercel n'installe
+    // pas les dépendances transitives de ce workspace.
+    "types": ["bun", "node"],
+    // Alias `@/x` → `src/x`. Bun lit ces `paths` à l'exécution, y compris sur
+    // les Vercel Functions puisque le runtime Bun y est activé (vercel.json).
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
