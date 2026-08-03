@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "PORT=3001 bun --conditions=source run --hot src/index.ts",
-    "start": "PORT=3001 bun --conditions=source run src/index.ts",
-    "build": "bun run scripts/gen-tracing.ts && tsc --noEmit",
+    "dev": "PORT=3001 bun run --hot src/index.ts",
+    "start": "PORT=3001 bun run src/index.ts",
+    "build": "tsc --noEmit",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -18,11 +18,5 @@
     "@types/bun": "^1.2.0",
     "@types/node": "^22.15.0",
     "typescript": "^5.8.0"
-  },
-  "imports": {
-    "#*": {
-      "source": "./src/*.ts",
-      "default": "./src/*.js"
-    }
   }
 }

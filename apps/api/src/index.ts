@@ -5,6 +5,6 @@
 // par défaut dans `app|index|server.ts` et retient `src/app.ts` : c'est lui qui
 // devient le handler de la Function (vérifiable dans `.vc-config.json` d'un
 // `vercel build`). Ce fichier n'est même pas embarqué dans le lambda.
-import app from "./app";
+import app from "@/app";
 
 export default app;

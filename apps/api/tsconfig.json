@@ -5,11 +5,15 @@
     // que Bun expose aussi. Déclaré en dépendance directe : Vercel n'installe
     // pas les dépendances transitives de ce workspace.
     //
-    // Les alias `#x` sont déclarés dans le champ `imports` du package.json et
-    // non ici : `paths` ne survivrait pas au déploiement, le tsconfig n'étant
-    // pas embarqué dans la Function.
-    "types": ["bun", "node"]
+    // Alias `@/x` → `src/x`, comme dans apps/web. Ils sont résolus au build par
+    // le mode expérimental de Vercel (`VERCEL_EXPERIMENTAL_BACKENDS`, activé
+    // dans vercel.json), qui les réécrit en chemins relatifs avant déploiement.
+    "types": ["bun", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src", "scripts"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
