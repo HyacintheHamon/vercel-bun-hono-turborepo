@@ -1,5 +1,9 @@
 {
   "extends": "@repo/typescript-config/bun.json",
+  "compilerOptions": {
+    // Bun en local, Node sur les Vercel Functions : les deux runtimes sont ciblés.
+    "types": ["bun", "node"]
+  },
   "include": ["src", "api"],
   "exclude": ["node_modules"]
 }
