@@ -1,16 +1,12 @@
-// Fichier d'exemple : une route montée dans un sous-dossier.
-//
-// Les imports locaux sont volontairement relatifs. Vercel construit le lambda
-// en traçant les imports, et un traceur ne suit que les chemins relatifs et
-// les paquets de node_modules : derrière un alias, ces fichiers ne seraient
-// pas embarqués. Les alias `@/` restent réservés à apps/web, que Next.js
-// bundle au build.
+// Fichier d'exemple : une route montée dans un sous-dossier, qui consomme
+// l'alias `#lib/runtime` (déclaré dans le champ `imports` du package.json).
 import { Hono } from "hono";
 import type { ApiResponse } from "@repo/shared";
 
-import { bunVersion, runtime } from "../lib/runtime";
+import { bunVersion, runtime } from "#lib/runtime";
 
 interface ExampleData {
+  alias: string;
   importedFrom: string;
   runtime: string;
   bunVersion: string | null;
@@ -23,6 +19,7 @@ example.get("/", (c) => {
     success: true,
     message: "Cette route est servie par src/routes/example.ts",
     data: {
+      alias: "#lib/runtime",
       importedFrom: "apps/api/src/lib/runtime.ts",
       runtime,
       bunVersion,

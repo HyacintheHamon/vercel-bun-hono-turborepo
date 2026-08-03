@@ -4,12 +4,12 @@
     // `node` fournit les types de `process` (utilisé pour PORT et CORS_ORIGIN),
     // que Bun expose aussi. Déclaré en dépendance directe : Vercel n'installe
     // pas les dépendances transitives de ce workspace.
-    // Pas d'alias ici : Vercel construit le lambda en traçant les imports, et
-    // un traceur ne suit que les chemins relatifs et les paquets de
-    // node_modules. Derrière un alias (`paths` ou `imports`), les fichiers
-    // visés ne sont jamais embarqués et la Function crashe au démarrage.
+    //
+    // Les alias `#x` sont déclarés dans le champ `imports` du package.json et
+    // non ici : `paths` ne survivrait pas au déploiement, le tsconfig n'étant
+    // pas embarqué dans la Function.
     "types": ["bun", "node"]
   },
-  "include": ["src"],
+  "include": ["src", "scripts"],
   "exclude": ["node_modules"]
 }

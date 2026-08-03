@@ -48,59 +48,80 @@ Le runtime Bun étant activé sur Vercel, cette réponse est la même en product
 
 ## Alias d'import
 
-| Alias          | Résout vers       | App        | Déclaré dans              |
-| -------------- | ----------------- | ---------- | ------------------------- |
-| `@/*`          | `apps/web/*`      | `apps/web` | `tsconfig.json` → `paths` |
-| `@repo/shared` | `packages/shared` | partout    | workspaces Bun            |
+| Alias          | Résout vers       | App        | Déclaré dans                 |
+| -------------- | ----------------- | ---------- | ---------------------------- |
+| `#*`           | `apps/api/src/*`  | `apps/api` | `package.json` → `imports`   |
+| `@/*`          | `apps/web/*`      | `apps/web` | `tsconfig.json` → `paths`    |
+| `@repo/shared` | `packages/shared` | partout    | workspaces Bun               |
 
 ```ts
+// apps/api/src/app.ts
+import { bunVersion, runtime } from "#lib/runtime";
+import example from "#routes/example";
+
 // apps/web/app/page.tsx
 import ApiStatus from "@/components/api-status";
 import { fetchHello } from "@/lib/api";
-
-// apps/api/src/app.ts — imports locaux relatifs, voir ci-dessous
-import { bunVersion, runtime } from "./lib/runtime";
-import example from "./routes/example";
 ```
 
 Fichiers d'exemple fournis, tous branchés pour de vrai (pas de code mort) :
 
+- `apps/api/src/lib/runtime.ts` — détection du runtime
+- `apps/api/src/routes/example.ts` — route `GET /api/example`, consomme `#lib/runtime`
 - `apps/web/lib/api.ts` — helpers de fetch typés vers l'API
 - `apps/web/components/api-status.tsx` — composant consommant `@/lib/api`
-- `apps/api/src/lib/runtime.ts` — détection du runtime
-- `apps/api/src/routes/example.ts` — route `GET /api/example`
 
-### Pourquoi pas d'alias dans apps/api
+### Comment les alias tiennent côté API
 
-Ce n'est pas un oubli : sous ce mode de déploiement, **aucun alias ne peut
-fonctionner** côté API.
+`apps/web` est simple : Next.js bundle au build, quand le tsconfig et tous les
+fichiers sont là. L'alias est résolu avant le déploiement, il n'en reste rien à
+l'exécution.
 
-Vercel construit le lambda en **traçant les imports** depuis le point d'entrée,
-et n'embarque que les fichiers ainsi atteints. Un traceur suit deux choses :
-les chemins relatifs et les paquets de `node_modules`. Il ne suit ni les
-`paths` d'un `tsconfig.json`, ni le champ `imports` d'un `package.json`.
+`apps/api` est déployé **sans bundling** : Vercel transpile chaque fichier
+séparément et décide quoi embarquer en **traçant les imports**. Or un traceur ne
+suit que les chemins relatifs et les paquets de `node_modules` — jamais un
+alias. Faire tenir des alias demande donc trois pièces qui se complètent :
 
-Conséquence : derrière un alias, les fichiers visés ne sont jamais copiés dans
-la Function. Elle crashe au démarrage avec un `ResolveMessage` de Bun — non pas
-parce que l'alias est mal résolu, mais parce que **le fichier est absent**.
+**1. Déclarer l'alias là où le runtime le lira** — le `package.json`, embarqué
+dans la Function, et non le `tsconfig.json`, qui ne l'est pas :
 
-Constaté avec `vercel build`, en comparant le contenu de la Function :
+```jsonc
+"imports": {
+  "#*": {
+    "source": "./src/*.ts",    // dev : Bun sert les sources TypeScript
+    "default": "./src/*.js"    // Vercel : sources transpilées en .js
+  }
+}
+```
 
-| Imports dans `src/app.ts` | Fichiers embarqués                          |
-| ------------------------- | ------------------------------------------- |
-| relatifs                  | `app.js`, `lib/runtime.js`, `routes/example.js` |
-| alias `#lib/runtime`      | `app.js` seul                               |
+**2. Activer la condition `source` en dev**, sinon Bun cherche des `.js` qui
+n'existent pas localement :
 
-`includeFiles` dans `vercel.json` ne rattrape pas le coup : sur une app détectée
-par framework, il n'embarque pas les fichiers manquants.
+```jsonc
+"dev": "PORT=3001 bun --conditions=source run --hot src/index.ts"
+```
 
-Il reste une façon d'avoir de vrais alias côté API : **bundler l'app au build**,
-pour que les alias soient résolus avant le déploiement — au prix d'abandonner la
-détection zéro-config et de gérer soi-même la sortie de build.
+**3. Faire voir les fichiers au traceur.** `src/_tracing.ts` réimporte en
+relatif tous les modules atteints par alias, ce qui suffit à les embarquer. Il
+est **généré à chaque build** par `scripts/gen-tracing.ts` : ajouter un fichier
+sous `src/` suffit, il n'y a rien à tenir à jour.
 
-`apps/web` n'a pas ce problème : Next.js bundle l'application au build, quand
-le tsconfig et tous les fichiers sont là. L'alias est résolu avant le
-déploiement, il n'en reste aucune trace à l'exécution.
+> Sans la pièce 3, la Function crashe au démarrage sur un `ResolveMessage` de
+> Bun — non pas parce que l'alias est mal résolu, mais parce que le fichier est
+> absent du lambda. `includeFiles` dans `vercel.json` ne rattrape pas le coup :
+> sur une app détectée par framework, il est ignoré.
+
+Vérifiable en comparant le contenu de la Function produite par `vercel build` :
+
+| Configuration                | Fichiers embarqués                                          |
+| ---------------------------- | ----------------------------------------------------------- |
+| imports relatifs             | `app.js`, `lib/runtime.js`, `routes/example.js`              |
+| alias seuls                  | `app.js` seul — crash                                        |
+| alias + `_tracing.ts`        | `app.js`, `_tracing.js`, `lib/runtime.js`, `routes/example.js` |
+
+Si cette mécanique paraît trop coûteuse pour le gain, revenir à des imports
+relatifs dans `apps/api` est parfaitement viable : supprimer le champ
+`imports`, `scripts/gen-tracing.ts`, `src/_tracing.ts` et les `--conditions`.
 
 ## Déploiement sur Vercel
 
@@ -122,6 +143,9 @@ Crée **deux projets Vercel** pointant vers ce même dépôt GitHub. Vercel dét
   adapter `hono/vercel`. `src/index.ts` ne sert qu'au dev local et n'est pas
   déployé.
 
+- Variable d'environnement recommandée :
+  - `CORS_ORIGIN` = URL du projet web (ex. `https://mon-front.vercel.app`)
+
 Pour inspecter ce qui part réellement dans la Function :
 
 ```bash
@@ -129,8 +153,6 @@ cd apps/api && bunx vercel build --output /tmp/out
 cat /tmp/out/functions/index.func/.vc-config.json      # handler + runtime
 find /tmp/out/functions/index.func -name '*.js' -not -path '*node_modules*'
 ```
-- Variable d'environnement recommandée :
-  - `CORS_ORIGIN` = URL du projet web (ex. `https://mon-front.vercel.app`)
 
 ### 2. Projet Web (`apps/web`)
 
@@ -144,10 +166,12 @@ find /tmp/out/functions/index.func -name '*.js' -not -path '*node_modules*'
 ```
 apps/
   api/          # Hono
-    src/index.ts    # export default app — entrée Vercel et dev local
-    src/app.ts      # routes
-    src/lib/        # @/lib/*
-    src/routes/     # @/routes/*
+    src/app.ts       # routes — handler de la Function sur Vercel
+    src/index.ts     # entrée du serveur de dev uniquement
+    src/lib/         # #lib/*
+    src/routes/      # #routes/*
+    src/_tracing.ts  # généré — voir « Alias d'import »
+    scripts/gen-tracing.ts
   web/          # Next.js — appelle l'API et affiche la réponse
 packages/
   shared/       # Types partagés (ApiResponse, HelloResponse…)
