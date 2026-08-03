@@ -1,5 +1,5 @@
 // Entrée pour le développement local avec Bun : `bun run --hot src/index.ts`
-import app from "./app";
+import app from "@/app";
 
 const port = Number(process.env.PORT ?? 3001);
 

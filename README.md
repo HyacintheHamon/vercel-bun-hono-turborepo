@@ -23,10 +23,11 @@ bun run dev
 
 ## Routes de l'API
 
-| Route         | Réponse                                                            |
-| ------------- | ------------------------------------------------------------------ |
-| `GET /`       | Statut de l'API, runtime détecté et version de Bun                  |
-| `GET /api/hello` | Message d'exemple typé avec `HelloResponse` de `@repo/shared`     |
+| Route              | Réponse                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `GET /`            | Statut de l'API, runtime détecté et version de Bun              |
+| `GET /api/hello`   | Message d'exemple typé avec `HelloResponse` de `@repo/shared`   |
+| `GET /api/example` | Démo des alias d'import (voir plus bas)                         |
 
 ```bash
 curl http://localhost:3001/
@@ -63,6 +64,38 @@ Crée **deux projets Vercel** pointant vers ce même dépôt GitHub. Vercel dét
 - Framework préréglé : Next.js (détecté automatiquement)
 - Variable d'environnement :
   - `NEXT_PUBLIC_API_URL` = URL du projet API (ex. `https://mon-api.vercel.app`)
+
+## Alias d'import
+
+Fini les `../../lib/foo`. Chaque app expose un alias `@/`, déclaré dans son
+`tsconfig.json` (clé `paths`) :
+
+| Alias           | Résout vers      | App        |
+| --------------- | ---------------- | ---------- |
+| `@/*`           | `apps/api/src/*` | `apps/api` |
+| `@/*`           | `apps/web/*`     | `apps/web` |
+| `@repo/shared`  | `packages/shared` | partout   |
+
+```ts
+// apps/api/src/app.ts
+import { bunVersion, runtime } from "@/lib/runtime";
+import example from "@/routes/example";
+
+// apps/web/app/page.tsx
+import ApiStatus from "@/components/api-status";
+import { fetchHello } from "@/lib/api";
+```
+
+Fichiers d'exemple fournis, tous branchés pour de vrai (pas de code mort) :
+
+- `apps/api/src/routes/example.ts` — route `GET /api/example`, consomme `@/lib/runtime`
+- `apps/api/src/lib/runtime.ts` — détection du runtime
+- `apps/web/lib/api.ts` — helpers de fetch typés vers l'API
+- `apps/web/components/api-status.tsx` — composant consommant `@/lib/api`
+
+Côté résolution : Bun et Next.js lisent `paths` nativement, et Vercel bundle
+les Functions avec esbuild, qui le lit aussi. Le même import fonctionne donc en
+dev comme en production.
 
 ## Structure
 

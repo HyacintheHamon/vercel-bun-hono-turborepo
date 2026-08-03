@@ -2,7 +2,13 @@
   "extends": "@repo/typescript-config/bun.json",
   "compilerOptions": {
     // Bun en local, Node sur les Vercel Functions : les deux runtimes sont ciblés.
-    "types": ["bun", "node"]
+    "types": ["bun", "node"],
+    // Alias d'import : `@/x` → `src/x`. baseUrl est explicite pour que le
+    // bundler de Vercel (esbuild) résolve les chemins comme Bun le fait.
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "api"],
   "exclude": ["node_modules"]

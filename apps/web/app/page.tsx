@@ -1,21 +1,10 @@
-import type { HelloResponse } from "@repo/shared";
+import ApiStatus from "@/components/api-status";
+import { fetchHello } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-async function getHello(): Promise<HelloResponse | null> {
-  try {
-    const res = await fetch(`${API_URL}/api/hello`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return (await res.json()) as HelloResponse;
-  } catch {
-    return null;
-  }
-}
-
 export default async function Home() {
-  const hello = await getHello();
+  const hello = await fetchHello();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
@@ -27,9 +16,11 @@ export default async function Home() {
         appelle <code className="text-zinc-200">apps/api</code>
       </p>
 
+      <ApiStatus />
+
       <section className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Réponse de l&apos;API ({API_URL})
+          Réponse de /api/hello
         </h2>
         {hello ? (
           <div className="space-y-2">
@@ -40,10 +31,7 @@ export default async function Home() {
             <p className="text-xs text-zinc-600">{hello.data?.timestamp}</p>
           </div>
         ) : (
-          <p className="text-sm text-red-400">
-            API injoignable. Lance-la avec <code>bun run dev</code> à la racine
-            du monorepo.
-          </p>
+          <p className="text-sm text-red-400">API injoignable.</p>
         )}
       </section>
     </main>

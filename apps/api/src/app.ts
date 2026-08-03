@@ -3,6 +3,9 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { HelloResponse, RootResponse } from "@repo/shared";
 
+import { bunVersion, runtime } from "@/lib/runtime";
+import example from "@/routes/example";
+
 const app = new Hono();
 
 app.use(logger());
@@ -13,12 +16,6 @@ app.use(
   }),
 );
 
-// Le global `Bun` n'existe pas sur les Vercel Functions (runtime Node). On le
-// lit via globalThis plutôt que comme global ambiant : le typecheck ne dépend
-// alors plus de la présence de bun-types, absent de l'install Vercel.
-const bunVersion =
-  (globalThis as { Bun?: { version: string } }).Bun?.version ?? null;
-
 app.get("/", (c) => {
   const response: RootResponse = {
     success: true,
@@ -26,7 +23,7 @@ app.get("/", (c) => {
       ? `Hono API is running on Bun ${bunVersion}`
       : "Hono API is running on Node",
     data: {
-      runtime: bunVersion ? "bun" : "node",
+      runtime,
       bunVersion,
     },
   };
@@ -36,7 +33,7 @@ app.get("/", (c) => {
 app.get("/api/hello", (c) => {
   const response: HelloResponse = {
     success: true,
-    message: "Hello from Hono on Bun!",
+    message: "Hello from Hono!",
     data: {
       greeting: "Bonjour depuis apps/api 👋",
       timestamp: new Date().toISOString(),
@@ -44,5 +41,7 @@ app.get("/api/hello", (c) => {
   };
   return c.json(response);
 });
+
+app.route("/api/example", example);
 
 export default app;
