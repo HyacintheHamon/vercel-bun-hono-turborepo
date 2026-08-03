@@ -13,18 +13,21 @@ app.use(
   }),
 );
 
+// Le global `Bun` n'existe pas sur les Vercel Functions (runtime Node). On le
+// lit via globalThis plutôt que comme global ambiant : le typecheck ne dépend
+// alors plus de la présence de bun-types, absent de l'install Vercel.
+const bunVersion =
+  (globalThis as { Bun?: { version: string } }).Bun?.version ?? null;
+
 app.get("/", (c) => {
-  // `typeof` plutôt qu'un accès direct : sur les Vercel Functions (runtime
-  // Node), le global `Bun` n'existe pas.
-  const isBun = typeof Bun !== "undefined";
   const response: RootResponse = {
     success: true,
-    message: isBun
-      ? `Hono API is running on Bun ${Bun.version}`
+    message: bunVersion
+      ? `Hono API is running on Bun ${bunVersion}`
       : "Hono API is running on Node",
     data: {
-      runtime: isBun ? "bun" : "node",
-      bunVersion: isBun ? Bun.version : null,
+      runtime: bunVersion ? "bun" : "node",
+      bunVersion,
     },
   };
   return c.json(response);
