@@ -19,7 +19,24 @@ bun run dev
 ```
 
 - Web : http://localhost:3000
-- API : http://localhost:3001 (essaie `curl http://localhost:3001/api/hello`)
+- API : http://localhost:3001
+
+## Routes de l'API
+
+| Route         | Réponse                                                            |
+| ------------- | ------------------------------------------------------------------ |
+| `GET /`       | Statut de l'API, runtime détecté et version de Bun                  |
+| `GET /api/hello` | Message d'exemple typé avec `HelloResponse` de `@repo/shared`     |
+
+```bash
+curl http://localhost:3001/
+# {"success":true,"message":"Hono API is running on Bun 1.3.11",
+#  "data":{"runtime":"bun","bunVersion":"1.3.11"}}
+```
+
+> **Note** — Sur Vercel, Bun sert à installer les dépendances, mais les
+> Vercel Functions s'exécutent sous le runtime **Node**. La route `/` renvoie
+> donc `{"runtime":"node","bunVersion":null}` en production : c'est attendu.
 
 ## Scripts
 
