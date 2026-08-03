@@ -5,6 +5,6 @@
 // donc le point d'entrée de la Function, servi par le runtime Bun (voir
 // `bunVersion` dans vercel.json). En local, `bun run --hot src/index.ts` sert
 // le même export, sur le port défini par la variable PORT.
-import app from "#app";
+import app from "./app";
 
 export default app;

@@ -3,8 +3,8 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { HelloResponse, RootResponse } from "@repo/shared";
 
-import { bunVersion, runtime } from "#lib/runtime";
-import example from "#routes/example";
+import { bunVersion, runtime } from "./lib/runtime";
+import example from "./routes/example";
 
 const app = new Hono();
 
