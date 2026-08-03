@@ -82,8 +82,21 @@ les chemins relatifs et les paquets de `node_modules`. Il ne suit ni les
 
 Conséquence : derrière un alias, les fichiers visés ne sont jamais copiés dans
 la Function. Elle crashe au démarrage avec un `ResolveMessage` de Bun — non pas
-parce que l'alias est mal résolu, mais parce que **le fichier est absent**. Les
-deux mécanismes ont été essayés et échouent de façon identique.
+parce que l'alias est mal résolu, mais parce que **le fichier est absent**.
+
+Constaté avec `vercel build`, en comparant le contenu de la Function :
+
+| Imports dans `src/app.ts` | Fichiers embarqués                          |
+| ------------------------- | ------------------------------------------- |
+| relatifs                  | `app.js`, `lib/runtime.js`, `routes/example.js` |
+| alias `#lib/runtime`      | `app.js` seul                               |
+
+`includeFiles` dans `vercel.json` ne rattrape pas le coup : sur une app détectée
+par framework, il n'embarque pas les fichiers manquants.
+
+Il reste une façon d'avoir de vrais alias côté API : **bundler l'app au build**,
+pour que les alias soient résolus avant le déploiement — au prix d'abandonner la
+détection zéro-config et de gérer soi-même la sortie de build.
 
 `apps/web` n'a pas ce problème : Next.js bundle l'application au build, quand
 le tsconfig et tous les fichiers sont là. L'alias est résolu avant le
@@ -104,9 +117,18 @@ Crée **deux projets Vercel** pointant vers ce même dépôt GitHub. Vercel dét
   ```
 
 - Aucune configuration de build : Vercel détecte l'app Hono en cherchant un
-  export par défaut dans `index|app|server.ts`, à la racine du projet ou sous
-  `src/`. C'est `apps/api/src/index.ts` qui joue ce rôle — ni dossier `api/`,
-  ni rewrites, ni adapter `hono/vercel`.
+  export par défaut dans `app|index|server.ts`, à la racine du projet ou sous
+  `src/`, et retient **`src/app.ts`** — ni dossier `api/`, ni rewrites, ni
+  adapter `hono/vercel`. `src/index.ts` ne sert qu'au dev local et n'est pas
+  déployé.
+
+Pour inspecter ce qui part réellement dans la Function :
+
+```bash
+cd apps/api && bunx vercel build --output /tmp/out
+cat /tmp/out/functions/index.func/.vc-config.json      # handler + runtime
+find /tmp/out/functions/index.func -name '*.js' -not -path '*node_modules*'
+```
 - Variable d'environnement recommandée :
   - `CORS_ORIGIN` = URL du projet web (ex. `https://mon-front.vercel.app`)
 
