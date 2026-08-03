@@ -48,19 +48,19 @@ Le runtime Bun étant activé sur Vercel, cette réponse est la même en product
 
 ## Alias d'import
 
-Fini les `../../lib/foo`. Chaque app expose un alias `@/`, déclaré dans les
-`paths` de son `tsconfig.json` :
+Fini les `../../lib/foo`. Chaque app a son alias, déclaré là où son runtime
+saura le lire :
 
-| Alias          | Résout vers       | App        |
-| -------------- | ----------------- | ---------- |
-| `@/*`          | `apps/api/src/*`  | `apps/api` |
-| `@/*`          | `apps/web/*`      | `apps/web` |
-| `@repo/shared` | `packages/shared` | partout    |
+| Alias          | Résout vers       | App        | Déclaré dans               |
+| -------------- | ----------------- | ---------- | -------------------------- |
+| `#*`           | `apps/api/src/*`  | `apps/api` | `package.json` → `imports` |
+| `@/*`          | `apps/web/*`      | `apps/web` | `tsconfig.json` → `paths`  |
+| `@repo/shared` | `packages/shared` | partout    | workspaces Bun             |
 
 ```ts
 // apps/api/src/app.ts
-import { bunVersion, runtime } from "@/lib/runtime";
-import example from "@/routes/example";
+import { bunVersion, runtime } from "#lib/runtime";
+import example from "#routes/example";
 
 // apps/web/app/page.tsx
 import ApiStatus from "@/components/api-status";
@@ -70,16 +70,37 @@ import { fetchHello } from "@/lib/api";
 Fichiers d'exemple fournis, tous branchés pour de vrai (pas de code mort) :
 
 - `apps/api/src/lib/runtime.ts` — détection du runtime
-- `apps/api/src/routes/example.ts` — route `GET /api/example`, consomme `@/lib/runtime`
+- `apps/api/src/routes/example.ts` — route `GET /api/example`, consomme `#lib/runtime`
 - `apps/web/lib/api.ts` — helpers de fetch typés vers l'API
 - `apps/web/components/api-status.tsx` — composant consommant `@/lib/api`
 
-> **À savoir** — Les `paths` du `tsconfig.json` n'existent qu'à la compilation :
-> seul un outil qui les lit peut les appliquer. Ici Next.js les applique au build
-> côté web, et **Bun les lit à l'exécution** côté API. C'est précisément pour ça
-> que l'API a besoin du runtime Bun : sous le runtime Node, Vercel transpile
-> fichier par fichier sans bundler, et Node échoue sur `@/app` avec
-> `ERR_MODULE_NOT_FOUND` — il ne connaît que les *subpath imports* préfixés `#`.
+### Pourquoi deux mécanismes différents
+
+Les `paths` du `tsconfig.json` ne servent qu'aux outils qui lisent ce fichier.
+
+- `apps/web` est bundlé par Next.js au build, avec le tsconfig sous la main :
+  `@/*` fonctionne.
+- `apps/api` est déployé tel quel, et **Vercel n'embarque pas le tsconfig dans
+  la Function** — il ne trace que les modules importés, et un fichier de config
+  n'en est pas un. À l'exécution, Bun n'a donc aucun `paths` à appliquer et
+  échoue sur `@/app` avec un `ResolveMessage`.
+
+L'API utilise donc les *subpath imports*, résolus depuis le `package.json` —
+lui toujours présent à côté du code. Le préfixe `#` est imposé par la
+spécification :
+
+```jsonc
+// apps/api/package.json
+"imports": {
+  "#*": {
+    "bun": "./src/*.ts",     // Bun charge directement les sources TypeScript
+    "default": "./src/*.js"  // repli si la Function tourne sous Node
+  }
+}
+```
+
+Pour ajouter un alias côté API, il suffit de créer un fichier sous `src/` — le
+motif `#*` le couvre déjà.
 
 ## Déploiement sur Vercel
 
